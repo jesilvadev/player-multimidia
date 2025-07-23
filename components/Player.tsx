@@ -5,7 +5,8 @@ import {
   IoPauseCircle,
   IoPlayBack,
   IoPlayForward,
-  IoVolumeMedium,
+  IoVolumeHigh,
+  IoVolumeMute,
 } from 'react-icons/io5'
 import { useRef, useState, useEffect } from 'react'
 
@@ -14,103 +15,134 @@ export default function Player() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [muted, setMuted] = useState(false)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime)
-    const handleLoadedMetadata = () => setDuration(video.duration)
+    const onTimeUpdate = () => setCurrentTime(video.currentTime)
+    const onLoadedMetadata = () => setDuration(video.duration)
 
-    video.addEventListener('timeupdate', handleTimeUpdate)
-    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('loadedmetadata', onLoadedMetadata)
 
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate)
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('loadedmetadata', onLoadedMetadata)
     }
   }, [])
 
-  const togglePlayPause = () => {
+  useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    if (playing) {
-      video.pause()
-    } else {
-      video.play()
-    }
+    video.volume = volume
+    video.muted = muted || volume === 0
+  }, [volume, muted])
+
+  const togglePlay = () => {
+    const video = videoRef.current
+    if (!video) return
+
+    playing ? video.pause() : video.play()
     setPlaying(!playing)
   }
 
-  const handleSeek = (value: number) => {
-    const video = videoRef.current
-    if (!video) return
+  const handleSeek = (val: number) => {
+    if (!videoRef.current) return
+    videoRef.current.currentTime = val
+    setCurrentTime(val)
+  }
 
-    video.currentTime = value
-    setCurrentTime(value)
+  const toggleMute = () => {
+    setMuted(!muted)
+    if (volume === 0) setVolume(0.5)
+  }
+
+  const formatTime = (t: number) => {
+    const m = Math.floor(t / 60)
+    const s = Math.floor(t % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
   }
 
   return (
-    <div className="max-w-xs mx-auto bg-[#1e293b] rounded-xl p-4 text-white space-y-4 shadow-lg">
-      <div className="rounded overflow-hidden">
-        <video
-          ref={videoRef}
-          src="/videos/video.mp4"
-          className="w-full rounded"
-          preload="metadata"
-        />
-      </div>
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-900 to-black flex justify-center items-center px-4">
+      <div className="bg-gray-950 w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-6 text-white relative">
+        <div className="rounded-xl overflow-hidden aspect-video">
+          <video
+            ref={videoRef}
+            src="/videos/video.mp4"
+            className="w-full h-full object-cover"
+            preload="metadata"
+          />
+        </div>
 
-      <div className="text-center">
-        <h3 className="font-semibold text-lg">Último Romance</h3>
-        <p className="text-sm text-gray-400">Los Hermanos</p>
-      </div>
+        <div className="text-center">
+          <h3 className="text-lg font-semibold">Último Romance</h3>
+          <p className="text-sm text-gray-400">Los Hermanos</p>
+        </div>
 
-      <div className="px-2">
-        <div className="flex items-center justify-between text-xs text-gray-300 mb-1">
+        <div className="text-xs text-gray-400 flex justify-between">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
+
         <input
           type="range"
           min={0}
           max={duration || 0}
-          step="0.1"
+          step={0.1}
           value={currentTime}
           onChange={(e) => handleSeek(Number(e.target.value))}
-          className="w-full"
+          className="w-full accent-red-500"
         />
-      </div>
 
-      <div className="flex items-center justify-around text-white text-2xl px-2">
-        <IoPlayBack
-          className="hover:text-red-400 cursor-pointer"
-          onClick={() => handleSeek(currentTime - 10)}
-        />
-        {playing ? (
-          <IoPauseCircle
-            className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
-            onClick={togglePlayPause}
+        <div className="flex flex-wrap justify-between items-center mt-4 gap-4 text-2xl">
+          <IoPlayBack
+            onClick={() => handleSeek(currentTime - 10)}
+            className="hover:text-red-400 cursor-pointer"
           />
-        ) : (
-          <IoPlayCircle
-            className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
-            onClick={togglePlayPause}
+
+          {playing ? (
+            <IoPauseCircle
+              onClick={togglePlay}
+              className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
+            />
+          ) : (
+            <IoPlayCircle
+              onClick={togglePlay}
+              className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
+            />
+          )}
+
+          <IoPlayForward
+            onClick={() => handleSeek(currentTime + 10)}
+            className="hover:text-red-400 cursor-pointer"
           />
-        )}
-        <IoPlayForward
-          className="hover:text-red-400 cursor-pointer"
-          onClick={() => handleSeek(currentTime + 10)}
-        />
-        <IoVolumeMedium className="hover:text-red-400 cursor-pointer" />
+
+          <div className="flex items-center gap-2 text-xl">
+            <button onClick={toggleMute} className="focus:outline-none">
+              {muted || volume === 0 ? (
+                <IoVolumeMute className="hover:text-red-400" />
+              ) : (
+                <IoVolumeHigh className="hover:text-red-400" />
+              )}
+            </button>
+
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-24 h-1 accent-red-500"
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
-}
-
-function formatTime(time: number): string {
-  const minutes = Math.floor(time / 60)
-  const seconds = Math.floor(time % 60)
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
