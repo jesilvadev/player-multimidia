@@ -10,6 +10,24 @@ import {
 } from 'react-icons/io5'
 import { useRef, useState, useEffect } from 'react'
 
+const playlist = [
+  {
+    title: 'Último Romance',
+    artist: 'Los Hermanos',
+    src: '/videos/video.mp4',
+  },
+  {
+    title: 'O Vento',
+    artist: 'Los Hermanos',
+    src: '/videos/video2.mp4',
+  },
+  {
+    title: 'O Velho e o Moço',
+    artist: 'Los Hermanos',
+    src: '/videos/video3.mp4',
+  },
+]
+
 export default function Player() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -17,20 +35,21 @@ export default function Player() {
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const [muted, setMuted] = useState(false)
+  const [selectedVideo, setSelectedVideo] = useState(playlist[0])
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    const onTimeUpdate = () => setCurrentTime(video.currentTime)
-    const onLoadedMetadata = () => setDuration(video.duration)
+    const updateTime = () => setCurrentTime(video.currentTime)
+    const setMeta = () => setDuration(video.duration)
 
-    video.addEventListener('timeupdate', onTimeUpdate)
-    video.addEventListener('loadedmetadata', onLoadedMetadata)
+    video.addEventListener('timeupdate', updateTime)
+    video.addEventListener('loadedmetadata', setMeta)
 
     return () => {
-      video.removeEventListener('timeupdate', onTimeUpdate)
-      video.removeEventListener('loadedmetadata', onLoadedMetadata)
+      video.removeEventListener('timeupdate', updateTime)
+      video.removeEventListener('loadedmetadata', setMeta)
     }
   }, [])
 
@@ -41,6 +60,15 @@ export default function Player() {
     video.volume = volume
     video.muted = muted || volume === 0
   }, [volume, muted])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.load()
+    video.play()
+    setPlaying(true)
+  }, [selectedVideo])
 
   const togglePlay = () => {
     const video = videoRef.current
@@ -68,27 +96,50 @@ export default function Player() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-gray-900 to-black flex justify-center items-center px-4">
-      <div className="bg-gray-950 w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-6 text-white relative">
-        <div className="rounded-xl overflow-hidden aspect-video">
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#0f0f0f] to-[#1f1f1f] flex justify-center items-center p-6">
+      <div className="w-full max-w-96 bg-[#121212] rounded-2xl shadow-2xl p-6 text-white space-y-6">
+
+        {/* Playlist */}
+        <div>
+          <h2 className="text-sm text-gray-400 uppercase mb-2">Los Hermanos</h2>
+          <ul className="space-y-1 text-sm">
+            {playlist.map((track, idx) => (
+              <li
+                key={idx}
+                className={`cursor-pointer px-4 py-2 rounded-lg transition ${
+                  selectedVideo.src === track.src
+                    ? 'bg-red-500 text-white font-bold'
+                    : 'hover:bg-white/10 text-gray-300'
+                }`}
+                onClick={() => setSelectedVideo(track)}
+              >
+                {track.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Player visual */}
+        <div className="aspect-video w-full overflow-hidden rounded-xl shadow-md">
           <video
             ref={videoRef}
-            src="/videos/video.mp4"
+            src={selectedVideo.src}
             className="w-full h-full object-cover"
             preload="metadata"
           />
         </div>
 
+        {/* Info */}
         <div className="text-center">
-          <h3 className="text-lg font-semibold">Último Romance</h3>
-          <p className="text-sm text-gray-400">Los Hermanos</p>
+          <h3 className="text-xl font-semibold">{selectedVideo.title}</h3>
+          <p className="text-sm text-gray-400">{selectedVideo.artist}</p>
         </div>
 
+        {/* Tempo */}
         <div className="text-xs text-gray-400 flex justify-between">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
-
         <input
           type="range"
           min={0}
@@ -99,38 +150,38 @@ export default function Player() {
           className="w-full accent-red-500"
         />
 
-        <div className="flex flex-wrap justify-between items-center mt-4 gap-4 text-2xl">
+        {/* Controles */}
+        <div className="flex items-center justify-between mt-4 gap-4">
           <IoPlayBack
             onClick={() => handleSeek(currentTime - 10)}
-            className="hover:text-red-400 cursor-pointer"
+            className="text-3xl hover:text-red-400 cursor-pointer"
           />
 
           {playing ? (
             <IoPauseCircle
               onClick={togglePlay}
-              className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
+              className="text-5xl text-red-600 hover:text-red-500 cursor-pointer"
             />
           ) : (
             <IoPlayCircle
               onClick={togglePlay}
-              className="text-red-600 hover:text-red-500 cursor-pointer text-5xl"
+              className="text-5xl text-red-600 hover:text-red-500 cursor-pointer"
             />
           )}
 
           <IoPlayForward
             onClick={() => handleSeek(currentTime + 10)}
-            className="hover:text-red-400 cursor-pointer"
+            className="text-3xl hover:text-red-400 cursor-pointer"
           />
 
-          <div className="flex items-center gap-2 text-xl">
-            <button onClick={toggleMute} className="focus:outline-none">
+          <div className="flex items-center gap-2 w-36">
+            <button onClick={toggleMute}>
               {muted || volume === 0 ? (
-                <IoVolumeMute className="hover:text-red-400" />
+                <IoVolumeMute className="text-xl hover:text-red-400" />
               ) : (
-                <IoVolumeHigh className="hover:text-red-400" />
+                <IoVolumeHigh className="text-xl hover:text-red-400" />
               )}
             </button>
-
             <input
               type="range"
               min={0}
@@ -138,7 +189,7 @@ export default function Player() {
               step={0.01}
               value={volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-24 h-1 accent-red-500"
+              className="w-full accent-red-500"
             />
           </div>
         </div>
