@@ -70,6 +70,28 @@ export default function Player() {
     setPlaying(true)
   }, [selectedVideo])
 
+  useEffect(() => {
+  const video = videoRef.current
+  if (!video) return
+
+  const handleEnded = () => {
+    const index = playlist.findIndex(v => v.src === selectedVideo.src)
+    const next = playlist[index + 1]
+
+    if (next) {
+      setSelectedVideo(next)
+    } else {
+      setPlaying(false)
+    }
+  }
+
+  video.addEventListener('ended', handleEnded)
+  return () => {
+    video.removeEventListener('ended', handleEnded)
+  }
+}, [selectedVideo])
+
+
   const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
